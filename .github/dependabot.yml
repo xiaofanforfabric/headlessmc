@@ -12,7 +12,7 @@ updates:
     reviewers:
       - "okafke"
     commit-message:
-      prefix: "gradle"
+      prefix: "fix"
       include: "scope"
 
   - package-ecosystem: "github-actions"
@@ -26,8 +26,7 @@ updates:
     reviewers:
       - "okafke"
     commit-message:
-      prefix: "github-actions"
-      include: "scope"
+      prefix: "chore(ci)"
     groups:
       actions-deps:
         patterns:
