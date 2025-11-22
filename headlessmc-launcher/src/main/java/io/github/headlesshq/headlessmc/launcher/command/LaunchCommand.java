@@ -39,14 +39,14 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
 
     @Override
     public void execute(Version version, String... args) throws CommandException {
-        // 在启动前检查账户状态
+        // Check account status before launch
         try {
             checkAccountBeforeLaunch();
         } catch (AuthException e) {
-            // Token 失效，提示用户选择
-            ctx.log("警告: " + e.getMessage());
-            ctx.log("是否继续启动游戏？(y/n)");
-            ctx.log("(注意: 使用失效的 token 启动游戏会导致'无效的会话'错误)");
+            // Token invalid, prompt user to choose
+            ctx.log("Warning: " + e.getMessage() + " / 警告: " + e.getMessage());
+            ctx.log("Continue to launch game? (y/n) / 是否继续启动游戏？(y/n)");
+            ctx.log("(Note: Launching with invalid token will cause 'Invalid session' error) / (注意: 使用失效的 token 启动游戏会导致'无效的会话'错误)");
             
             final boolean[] shouldContinue = {false};
             final boolean[] userResponded = {false};
@@ -59,27 +59,27 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
                 }
             });
             
-            // 等待用户响应
+            // Wait for user response
             synchronized (shouldContinue) {
                 while (!userResponded[0]) {
                     try {
-                        shouldContinue.wait(30000); // 最多等待30秒
+                        shouldContinue.wait(30000); // Wait up to 30 seconds
                         if (!userResponded[0]) {
-                            throw new CommandException("等待用户响应超时");
+                            throw new CommandException("Timeout waiting for user response / 等待用户响应超时");
                         }
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new CommandException("等待用户响应被中断");
+                        throw new CommandException("Interrupted while waiting for user response / 等待用户响应被中断");
                     }
                 }
             }
             
             if (!shouldContinue[0]) {
-                ctx.log("已取消启动。请使用 'yggdrasil login' 命令重新登录。");
-                throw new CommandException("Token 失效，用户选择取消启动");
+                ctx.log("Launch cancelled. Please use 'yggdrasil login' command to re-login. / 已取消启动。请使用 'yggdrasil login' 命令重新登录。");
+                throw new CommandException("Token invalid, user chose to cancel launch / Token 失效，用户选择取消启动");
             }
             
-            ctx.log("警告: 使用失效的 token 启动，游戏可能会显示'无效的会话'错误");
+            ctx.log("Warning: Launching with invalid token, game may show 'Invalid session' error / 警告: 使用失效的 token 启动，游戏可能会显示'无效的会话'错误");
         }
         
         ClientLaunchProcessLifecycle lifecycle = new ClientLaunchProcessLifecycle(version, args);
@@ -87,47 +87,48 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
     }
     
     /**
+     * Check account status before launch
      * 在启动前检查账户状态
-     * @throws AuthException 如果 token 失效
+     * @throws AuthException If token is invalid / 如果 token 失效
      */
     private void checkAccountBeforeLaunch() throws AuthException {
         ctx.log("========================================");
-        ctx.log("开始检查账户状态...");
+        ctx.log("Checking account status... / 开始检查账户状态...");
         
-        // 检查 Yggdrasil 账户
+        // Check Yggdrasil account
         io.github.headlesshq.headlessmc.auth.YggdrasilAccount yggdrasilAccount = ctx.getAccountManager().getPrimaryYggdrasilAccount();
         if (yggdrasilAccount != null) {
-            ctx.log("检测到 Yggdrasil 账户: " + yggdrasilAccount.getName());
-            ctx.log("开始验证 token...");
+            ctx.log("Detected Yggdrasil account: " + yggdrasilAccount.getName() + " / 检测到 Yggdrasil 账户: " + yggdrasilAccount.getName());
+            ctx.log("Starting token validation... / 开始验证 token...");
             
             boolean isValid = ctx.getAccountManager().validateYggdrasilToken(yggdrasilAccount);
             
             if (!isValid) {
                 ctx.log("========================================");
-                ctx.log("【TOKEN 验证失败】");
-                ctx.log("账户名称: " + yggdrasilAccount.getName());
-                ctx.log("验证服务器: " + yggdrasilAccount.getServerUrl());
+                ctx.log("【TOKEN VALIDATION FAILED / TOKEN 验证失败】");
+                ctx.log("Account name: " + yggdrasilAccount.getName() + " / 账户名称: " + yggdrasilAccount.getName());
+                ctx.log("Validation server: " + yggdrasilAccount.getServerUrl() + " / 验证服务器: " + yggdrasilAccount.getServerUrl());
                 ctx.log("");
-                ctx.log("验证过程:");
-                ctx.log("  1. 向服务器发送 POST 请求到: " + yggdrasilAccount.getServerUrl() + "/authserver/validate");
-                ctx.log("  2. 请求包含 accessToken 和 clientToken");
-                ctx.log("  3. 服务器返回非 204 状态码，表示 token 无效");
+                ctx.log("Validation process: / 验证过程:");
+                ctx.log("  1. Send POST request to: " + yggdrasilAccount.getServerUrl() + "/authserver/validate / 向服务器发送 POST 请求到: " + yggdrasilAccount.getServerUrl() + "/authserver/validate");
+                ctx.log("  2. Request contains accessToken and clientToken / 请求包含 accessToken 和 clientToken");
+                ctx.log("  3. Server returned non-204 status code, indicating token is invalid / 服务器返回非 204 状态码，表示 token 无效");
                 ctx.log("");
-                ctx.log("可能的原因:");
-                ctx.log("  - Token 已过期（通常 Yggdrasil token 有有效期限制）");
-                ctx.log("  - Token 已被服务器撤销");
-                ctx.log("  - 网络连接问题导致无法验证");
-                ctx.log("  - 服务器配置变更");
+                ctx.log("Possible reasons: / 可能的原因:");
+                ctx.log("  - Token expired (Yggdrasil tokens usually have expiration limits) / Token 已过期（通常 Yggdrasil token 有有效期限制）");
+                ctx.log("  - Token revoked by server / Token 已被服务器撤销");
+                ctx.log("  - Network connection issue preventing validation / 网络连接问题导致无法验证");
+                ctx.log("  - Server configuration changed / 服务器配置变更");
                 ctx.log("");
-                ctx.log("解决方案: 使用 'yggdrasil login' 命令重新登录以获取新的 token");
+                ctx.log("Solution: Use 'yggdrasil login' command to re-login and get a new token / 解决方案: 使用 'yggdrasil login' 命令重新登录以获取新的 token");
                 ctx.log("========================================");
-                throw new AuthException("Yggdrasil 账户 " + yggdrasilAccount.getName() + " 的 token 已失效！需要重新登录。");
+                throw new AuthException("Yggdrasil account " + yggdrasilAccount.getName() + " token is invalid! Please re-login. / Yggdrasil 账户 " + yggdrasilAccount.getName() + " 的 token 已失效！需要重新登录。");
             } else {
-                ctx.log("Token 验证成功: 账户状态正常");
+                ctx.log("Token validation successful: Account status is normal / Token 验证成功: 账户状态正常");
                 ctx.log("========================================");
             }
         } else {
-            ctx.log("未检测到 Yggdrasil 账户，跳过 token 验证");
+            ctx.log("No Yggdrasil account detected, skipping token validation / 未检测到 Yggdrasil 账户，跳过 token 验证");
             ctx.log("========================================");
         }
     }
@@ -184,14 +185,14 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
                 return toLaunchAccount(msaAccount);
             }
 
-            // 如果没有 Microsoft 账户，尝试使用 Yggdrasil 账户
+            // If no Microsoft account, try Yggdrasil account
             io.github.headlesshq.headlessmc.auth.YggdrasilAccount yggdrasilAccount = ctx.getAccountManager().getPrimaryYggdrasilAccount();
             if (yggdrasilAccount != null) {
-                // 注意：token 验证在 execute 方法中进行，这里直接返回账户
+                // Note: Token validation is done in execute method, return account directly here
                 return toLaunchAccount(yggdrasilAccount);
             }
 
-            // 如果都没有，检查离线模式
+            // If neither, check offline mode
             if (ctx.getAccountManager().getOfflineChecker().isOffline()) {
                 return ctx.getAccountManager().getOfflineAccount(ctx.getConfig());
             }
@@ -211,7 +212,7 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
     }
 
     private LaunchAccount toLaunchAccount(io.github.headlesshq.headlessmc.auth.YggdrasilAccount account) throws AuthException {
-        // 格式化 UUID（确保有连字符）
+        // Format UUID (ensure it has hyphens)
         String uuid = account.getUuid();
         if (uuid == null || uuid.isEmpty()) {
             throw new AuthException("Yggdrasil account UUID is missing!");
@@ -230,18 +231,18 @@ public class LaunchCommand extends AbstractDownloadingVersionCommand {
             throw new AuthException("Yggdrasil account name is missing!");
         }
         
-        // 使用 "legacy" 作为 user_type，因为 Minecraft 客户端认识这个类型
-        // "yggdrasil" 类型可能不被客户端识别
+        // Use "legacy" as user_type because Minecraft client recognizes this type
+        // "yggdrasil" type may not be recognized by the client
         return new LaunchAccount("legacy",
                 name,
                 uuid,
                 accessToken,
-                null); // Yggdrasil 没有 XUID
+                null); // Yggdrasil doesn't have XUID
     }
 
     private String formatUuid(String uuid) {
         if (uuid.length() != 32) {
-            return uuid; // 如果格式不对，直接返回
+            return uuid; // If format is incorrect, return as-is
         }
         return uuid.substring(0, 8) + "-" +
                uuid.substring(8, 12) + "-" +

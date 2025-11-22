@@ -24,7 +24,7 @@ public class YggdrasilClient {
     public YggdrasilSession authenticate(String username, String password) throws IOException {
         log.debug("Authenticating with Yggdrasil server: " + authServerUrl);
         
-        // 确保 URL 格式正确：如果 authServerUrl 以 / 结尾，去掉它
+        // Ensure URL format is correct: if authServerUrl ends with /, remove it
         String baseUrl = authServerUrl.endsWith("/") ? authServerUrl.substring(0, authServerUrl.length() - 1) : authServerUrl;
         URL url = new URL(baseUrl + "/authserver/authenticate");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -67,11 +67,11 @@ public class YggdrasilClient {
             ? jsonResponse.get("clientToken").getAsString() 
             : null;
 
-        // 处理多角色情况
+        // Handle multi-profile situation
         List<YggdrasilSession.Profile> availableProfiles = new ArrayList<>();
         YggdrasilSession.Profile selectedProfile = null;
 
-        // 解析 availableProfiles（所有可用角色）
+        // Parse availableProfiles (all available profiles)
         if (jsonResponse.has("availableProfiles") && jsonResponse.get("availableProfiles").isJsonArray()) {
             com.google.gson.JsonArray profilesArray = jsonResponse.getAsJsonArray("availableProfiles");
             for (com.google.gson.JsonElement element : profilesArray) {
@@ -83,7 +83,7 @@ public class YggdrasilClient {
             }
         }
 
-        // 解析 selectedProfile（当前选择的角色）
+        // Parse selectedProfile (currently selected profile)
         if (jsonResponse.has("selectedProfile") && !jsonResponse.get("selectedProfile").isJsonNull()) {
             JsonObject selectedProfileObj = jsonResponse.getAsJsonObject("selectedProfile");
             selectedProfile = new YggdrasilSession.Profile(
@@ -91,7 +91,7 @@ public class YggdrasilClient {
                 selectedProfileObj.get("name").getAsString()
             );
         } else if (!availableProfiles.isEmpty()) {
-            // 如果没有 selectedProfile 但有 availableProfiles，使用第一个
+            // If no selectedProfile but has availableProfiles, use the first one
             selectedProfile = availableProfiles.get(0);
         } else {
             throw new IOException("No profile available in authentication response");
@@ -177,7 +177,7 @@ public class YggdrasilClient {
     public boolean validate(String accessToken, String clientToken) throws IOException {
         String baseUrl = authServerUrl.endsWith("/") ? authServerUrl.substring(0, authServerUrl.length() - 1) : authServerUrl;
         URL url = new URL(baseUrl + "/authserver/validate");
-        log.debug("验证 URL: " + url.toString());
+        log.debug("Validation URL: " + url.toString() + " / 验证 URL: " + url.toString());
         
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
@@ -190,25 +190,25 @@ public class YggdrasilClient {
             request.addProperty("clientToken", clientToken);
         }
 
-        log.debug("验证请求体: " + request.toString().replace(accessToken, "***"));
+        log.debug("Validation request body: " + request.toString().replace(accessToken, "***") + " / 验证请求体: " + request.toString().replace(accessToken, "***"));
         
         try (OutputStream os = conn.getOutputStream()) {
             os.write(request.toString().getBytes(StandardCharsets.UTF_8));
         }
 
         int responseCode = conn.getResponseCode();
-        log.debug("验证响应码: " + responseCode);
+        log.debug("Validation response code: " + responseCode + " / 验证响应码: " + responseCode);
         
         if (responseCode == 204) {
             // 204 No Content means valid
-            log.debug("Token 验证成功: 服务器返回 204 No Content");
+            log.debug("Token validation successful: Server returned 204 No Content / Token 验证成功: 服务器返回 204 No Content");
             return true;
         } else {
-            // 读取错误响应
+            // Read error response
             String errorResponse = readErrorResponse(conn);
-            log.warn("Token 验证失败: 服务器返回 " + responseCode);
+            log.warn("Token validation failed: Server returned " + responseCode + " / Token 验证失败: 服务器返回 " + responseCode);
             if (errorResponse != null && !errorResponse.isEmpty()) {
-                log.warn("错误响应: " + errorResponse);
+                log.warn("Error response: " + errorResponse + " / 错误响应: " + errorResponse);
             }
             return false;
         }

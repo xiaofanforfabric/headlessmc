@@ -24,7 +24,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
 
     @Override
     public void execute(String line, String... args) throws CommandException {
-        // args[0] 是 "yggdrasil"，需要检查 args[1] 是否是 "login"
+        // args[0] is "yggdrasil", need to check if args[1] is "login"
         if (args.length < 2 || !args[1].equalsIgnoreCase("login")) {
             ctx.log("Usage: yggdrasil login <username> [password] [--server <url>]");
             ctx.log("Example: yggdrasil login myuser mypass");
@@ -36,12 +36,12 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         String password = null;
         String serverUrl = DEFAULT_SERVER;
 
-        // 解析参数（从 args[2] 开始，因为 args[0]="yggdrasil", args[1]="login"）
+        // Parse arguments (starting from args[2], because args[0]="yggdrasil", args[1]="login")
         for (int i = 2; i < args.length; i++) {
             if (args[i].equals("--server") || args[i].equals("-s")) {
                 if (i + 1 < args.length) {
                     serverUrl = args[i + 1];
-                    i++; // 跳过 URL
+                    i++; // Skip URL
                 }
             } else if (username == null) {
                 username = args[i];
@@ -54,7 +54,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
             throw new CommandException("Username is required");
         }
 
-        // 如果提供了密码，直接登录
+        // If password provided, login directly
         if (password != null && !password.isEmpty()) {
             try {
                 login(username, password, serverUrl);
@@ -62,7 +62,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
                 throw new CommandException("Failed to login: " + e.getMessage(), e);
             }
         } else {
-            // 如果没有提供密码，使用交互式输入
+            // If no password provided, use interactive input
             loginWithPasswordPrompt(username, serverUrl);
         }
     }
@@ -99,52 +99,52 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
 
     private void login(String username, String password, String serverUrl) throws CommandException {
         logInfo("========================================");
-        logInfo("开始手动登录");
-        logInfo("登录服务器: " + serverUrl);
-        logInfo("用户名: " + username);
-        logInfo("正在验证用户名和密码...");
+        logInfo("Starting manual login / 开始手动登录");
+        logInfo("Login server: " + serverUrl + " / 登录服务器: " + serverUrl);
+        logInfo("Username: " + username + " / 用户名: " + username);
+        logInfo("Validating username and password... / 正在验证用户名和密码...");
         
         try {
-            // 创建 Yggdrasil 客户端并认证
+            // Create Yggdrasil client and authenticate
             YggdrasilClient client = new YggdrasilClient(serverUrl);
             YggdrasilSession session = client.authenticate(username, password);
             
-            logInfo("用户名密码验证正确");
+            logInfo("Username and password validated successfully / 用户名密码验证正确");
             
-            // 处理多角色选择
+            // Handle multi-profile selection
             YggdrasilSession.Profile selectedProfile = session.getSelectedProfile();
             
-            // 记录找到的角色
+            // Log found profiles
             if (session.getAvailableProfiles() != null && !session.getAvailableProfiles().isEmpty()) {
                 int profileCount = session.getAvailableProfiles().size();
-                logInfo("在外置服务器找到 " + profileCount + " 个角色:");
+                logInfo("Found " + profileCount + " profile(s) on external server / 在外置服务器找到 " + profileCount + " 个角色:");
                 
                 int index = 1;
                 for (YggdrasilSession.Profile profile : session.getAvailableProfiles()) {
-                    String marker = profile.equals(selectedProfile) ? " [当前默认]" : "";
+                    String marker = profile.equals(selectedProfile) ? " [Current Default / 当前默认]" : "";
                     logInfo("  " + index + ". " + profile.getName() + " (UUID: " + profile.getId() + ")" + marker);
                     index++;
                 }
             }
             
-            // 如果有多个角色，让用户选择
+            // If multiple profiles, let user select
             if (session.getAvailableProfiles() != null && session.getAvailableProfiles().size() > 1) {
                 selectProfileAndLogin(session, selectedProfile, serverUrl);
-                return; // 选择在回调中完成，直接返回
+                return; // Selection happens in callback, return directly
             }
             
-            // 只有一个角色，直接登录
-            logInfo("玩家已选择: " + selectedProfile.getName());
+            // Only one profile, login directly
+            logInfo("Selected profile: " + selectedProfile.getName() + " / 玩家已选择: " + selectedProfile.getName());
             createAndAddAccount(serverUrl, session, selectedProfile);
             
         } catch (IOException e) {
-            logError("登录失败: " + e.getMessage());
+            logError("Login failed: " + e.getMessage() + " / 登录失败: " + e.getMessage());
             if (log != null) {
                 log.error("Yggdrasil login error", e);
             }
             throw new CommandException("Authentication failed: " + e.getMessage(), e);
         } catch (Exception e) {
-            logError("登录过程发生异常: " + e.getMessage());
+            logError("Unexpected error during login: " + e.getMessage() + " / 登录过程发生异常: " + e.getMessage());
             if (log != null) {
                 log.error("Unexpected error during login", e);
             }
@@ -153,6 +153,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
     }
     
     /**
+     * Output to both console and log file
      * 同时输出到控制台和日志文件
      */
     private void logInfo(String message) {
@@ -163,6 +164,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
     }
     
     /**
+     * Output to both console and log file (error level)
      * 同时输出到控制台和日志文件（错误级别）
      */
     private void logError(String message) {
@@ -173,6 +175,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
     }
     
     /**
+     * Output to both console and log file (warning level)
      * 同时输出到控制台和日志文件（警告级别）
      */
     private void logWarn(String message) {
@@ -183,7 +186,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
     }
 
     private void selectProfileAndLogin(YggdrasilSession session, YggdrasilSession.Profile defaultProfile, String serverUrl) {
-        String helpMessage = "请输入要使用的角色编号 (1-" + session.getAvailableProfiles().size() + ", 或按 Enter 使用当前角色, 输入 'abort' 取消):";
+        String helpMessage = "Enter profile number to use (1-" + session.getAvailableProfiles().size() + ", or press Enter to use current profile, type 'abort' to cancel) / 请输入要使用的角色编号 (1-" + session.getAvailableProfiles().size() + ", 或按 Enter 使用当前角色, 输入 'abort' 取消):";
         logInfo(helpMessage);
         
         CommandLine clm = ctx.getCommandLine();
@@ -198,25 +201,25 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
                         if (input != null && !input.trim().isEmpty()) {
                             try {
                                 int selectedNumber = Integer.parseInt(input.trim());
-                                // 用户输入的是显示编号（从1开始），需要转换为索引（从0开始）
+                                // User input is display number (1-based), convert to index (0-based)
                                 int selectedIndex = selectedNumber - 1;
                                 if (selectedIndex >= 0 && selectedIndex < session.getAvailableProfiles().size()) {
                                     selected = session.getAvailableProfiles().get(selectedIndex);
-                                    logInfo("玩家已选择: " + selected.getName());
+                                    logInfo("Selected profile: " + selected.getName() + " / 玩家已选择: " + selected.getName());
                                 } else {
-                                    logWarn("无效的编号 " + selectedNumber + "，使用当前角色: " + defaultProfile.getName());
+                                    logWarn("Invalid number " + selectedNumber + ", using current profile: " + defaultProfile.getName() + " / 无效的编号 " + selectedNumber + "，使用当前角色: " + defaultProfile.getName());
                                     selected = defaultProfile;
                                 }
                             } catch (NumberFormatException e) {
-                                logWarn("无效的输入，使用当前角色: " + defaultProfile.getName());
+                                logWarn("Invalid input, using current profile: " + defaultProfile.getName() + " / 无效的输入，使用当前角色: " + defaultProfile.getName());
                                 selected = defaultProfile;
                             }
                         } else {
-                            logInfo("玩家已选择: " + defaultProfile.getName() + " (使用默认角色)");
+                            logInfo("Selected profile: " + defaultProfile.getName() + " (using default) / 玩家已选择: " + defaultProfile.getName() + " (使用默认角色)");
                             selected = defaultProfile;
                         }
                         
-                        // 创建账户并添加
+                        // Create and add account
                         createAndAddAccount(serverUrl, session, selected);
                     } finally {
                         returnToPreviousContext();
@@ -230,7 +233,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         String accessToken = session.getAccessToken();
         String maskedToken = maskToken(accessToken);
         
-        logInfo("请求到的 accessToken: " + maskedToken);
+        logInfo("Received accessToken: " + maskedToken + " / 请求到的 accessToken: " + maskedToken);
         
         YggdrasilAccount account = new YggdrasilAccount(
             serverUrl,
@@ -241,14 +244,15 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         );
         
         ctx.getAccountManager().addYggdrasilAccount(account);
-        logInfo("登录成功！账户: " + account.getName());
+        logInfo("Login successful! Account: " + account.getName() + " / 登录成功！账户: " + account.getName());
         logInfo("========================================");
     }
     
     /**
+     * Masks token by showing only first 10 and last 10 characters, replacing middle with *
      * 对 token 进行打码处理，只显示前10位和后10位，中间用*代替
-     * @param token 原始 token
-     * @return 打码后的 token
+     * @param token Original token / 原始 token
+     * @return Masked token / 打码后的 token
      */
     private String maskToken(String token) {
         if (token == null || token.isEmpty()) {
@@ -257,7 +261,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         
         int length = token.length();
         if (length <= 20) {
-            // 如果 token 长度小于等于20，全部用*代替
+            // If token length <= 20, replace all with *
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < length; i++) {
                 sb.append("*");
@@ -265,7 +269,7 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
             return sb.toString();
         }
         
-        // 前10位 + 中间* + 后10位
+        // First 10 chars + middle * + last 10 chars
         String prefix = token.substring(0, 10);
         String suffix = token.substring(length - 10);
         int middleLength = length - 20;

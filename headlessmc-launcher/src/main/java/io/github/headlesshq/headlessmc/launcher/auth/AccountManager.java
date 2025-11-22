@@ -42,11 +42,11 @@ public class AccountManager {
 
     @Synchronized
     public void addYggdrasilAccount(io.github.headlesshq.headlessmc.auth.YggdrasilAccount account) {
-        log.info("添加 Yggdrasil 账户到账户管理器: " + account.getName());
+        log.info("Adding Yggdrasil account to account manager: " + account.getName() + " / 添加 Yggdrasil 账户到账户管理器: " + account.getName());
         removeYggdrasilAccount(account);
         yggdrasilAccounts.add(0, account);
         save();
-        log.info("Yggdrasil 账户已保存: " + account.getName());
+        log.info("Yggdrasil account saved: " + account.getName() + " / Yggdrasil 账户已保存: " + account.getName());
     }
 
     @Synchronized
@@ -142,15 +142,16 @@ public class AccountManager {
     }
 
     /**
+     * Validate if Yggdrasil account token is valid
      * 验证 Yggdrasil 账户的 token 是否有效
-     * @param account Yggdrasil 账户
-     * @return true 如果 token 有效，false 如果失效
+     * @param account Yggdrasil account / Yggdrasil 账户
+     * @return true if token is valid, false if invalid / true 如果 token 有效，false 如果失效
      */
     public boolean validateYggdrasilToken(io.github.headlesshq.headlessmc.auth.YggdrasilAccount account) {
-        log.info("正在验证 Yggdrasil 账户 token: " + account.getName());
-        log.info("验证服务器: " + account.getServerUrl());
-        log.info("验证方法: 向 " + account.getServerUrl() + "/authserver/validate 发送 POST 请求");
-        log.info("请求参数: accessToken=" + (account.getAccessToken() != null ? account.getAccessToken().substring(0, Math.min(10, account.getAccessToken().length())) + "..." : "null"));
+        log.info("Validating Yggdrasil account token: " + account.getName() + " / 正在验证 Yggdrasil 账户 token: " + account.getName());
+        log.info("Validation server: " + account.getServerUrl() + " / 验证服务器: " + account.getServerUrl());
+        log.info("Validation method: Send POST request to " + account.getServerUrl() + "/authserver/validate / 验证方法: 向 " + account.getServerUrl() + "/authserver/validate 发送 POST 请求");
+        log.info("Request parameters: accessToken=" + (account.getAccessToken() != null ? account.getAccessToken().substring(0, Math.min(10, account.getAccessToken().length())) + "..." : "null") + " / 请求参数: accessToken=" + (account.getAccessToken() != null ? account.getAccessToken().substring(0, Math.min(10, account.getAccessToken().length())) + "..." : "null"));
         
         try {
             io.github.headlesshq.headlessmc.auth.YggdrasilClient client = 
@@ -158,24 +159,24 @@ public class AccountManager {
             boolean isValid = client.validate(account.getAccessToken(), account.getClientToken());
             
             if (isValid) {
-                log.info("Token 验证成功: 服务器返回 204 No Content，表示 token 有效");
+                log.info("Token validation successful: Server returned 204 No Content, indicating token is valid / Token 验证成功: 服务器返回 204 No Content，表示 token 有效");
             } else {
-                log.warn("Token 验证失败: 服务器返回非 204 状态码，表示 token 已失效或无效");
-                log.warn("失效原因: 服务器拒绝了验证请求，可能的原因包括：");
-                log.warn("  1. Token 已过期");
-                log.warn("  2. Token 已被撤销");
-                log.warn("  3. Token 格式不正确");
-                log.warn("  4. 服务器连接失败");
+                log.warn("Token validation failed: Server returned non-204 status code, indicating token is invalid or expired / Token 验证失败: 服务器返回非 204 状态码，表示 token 已失效或无效");
+                log.warn("Failure reason: Server rejected validation request, possible reasons include: / 失效原因: 服务器拒绝了验证请求，可能的原因包括：");
+                log.warn("  1. Token expired / Token 已过期");
+                log.warn("  2. Token revoked / Token 已被撤销");
+                log.warn("  3. Token format incorrect / Token 格式不正确");
+                log.warn("  4. Server connection failed / 服务器连接失败");
             }
             
             return isValid;
         } catch (Exception e) {
-            log.error("Token 验证过程发生异常: " + e.getClass().getSimpleName() + " - " + e.getMessage());
-            log.error("验证失败原因: " + e.getMessage());
+            log.error("Exception occurred during token validation: " + e.getClass().getSimpleName() + " - " + e.getMessage() + " / Token 验证过程发生异常: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            log.error("Validation failure reason: " + e.getMessage() + " / 验证失败原因: " + e.getMessage());
             if (e.getCause() != null) {
-                log.error("根本原因: " + e.getCause().getMessage());
+                log.error("Root cause: " + e.getCause().getMessage() + " / 根本原因: " + e.getCause().getMessage());
             }
-            log.warn("由于验证过程异常，判定 token 失效");
+            log.warn("Token considered invalid due to validation exception / 由于验证过程异常，判定 token 失效");
             return false;
         }
     }
