@@ -61,6 +61,7 @@ HeadlessMc supports Yggdrasil authentication protocol, allowing you to use third
 **Features:**
 - Login with username and password to Yggdrasil-compatible servers
 - Support for accounts with multiple characters (interactive character selection)
+- List and switch between profiles for the current account
 - Automatic token validation before game launch
 - Comprehensive logging for all login operations
 - Secure token masking in logs
@@ -77,6 +78,27 @@ HeadlessMc supports Yggdrasil authentication protocol, allowing you to use third
 # Interactive password input (password will be hidden)
 > yggdrasil login <username>
 Enter your password or type 'abort' to cancel the login process.
+
+# List all profiles for the current account and switch
+> yggdrasil list
+```
+
+**List profiles example:**
+
+```
+> yggdrasil list
+========================================
+Listing profiles for current Yggdrasil account / 列出当前 Yggdrasil 账号的角色
+Current account: myuser / 当前账号: myuser
+Found 2 profile(s) / 找到 2 个角色:
+  1. Character1 (UUID: ...) [Current / 当前]
+  2. Character2 (UUID: ...)
+Enter profile number to switch (1-2, or type 'abort'/'cancel'/'esc' to cancel) / 请输入要切换的角色编号 (1-2, 或输入 'abort'/'cancel'/'esc' 取消):
+> 2
+Selected profile: Character2 / 已选择角色: Character2
+Switching to profile... / 正在切换角色...
+Login successful! Account: Character2 / 登录成功！账户: Character2
+========================================
 ```
 
 **Example with multiple characters:**
