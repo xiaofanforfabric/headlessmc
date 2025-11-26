@@ -44,8 +44,8 @@ HeadlessMc (HMC) 允许你从命令行启动 Minecraft Java 版。
 > 阅读我们全新的精美文档 [这里](https://headlesshq.github.io/headlessmc)。
 
 ## 前言：
-1.本项目与https://github.com/headlesshq/headlessmc的main分支为继承关系（版本号可能与主项目不同）
-2.由于主项目的维护者不懂中文，所以此子项目暂时由xiaofanforfabric维护
+1. 本项目与https://github.com/headlesshq/headlessmc 的main分支为继承关系（版本号可能与主项目不同）
+2. 由于主项目的维护者不懂中文，所以此子项目暂时由xiaofanforfabric维护
 
 
 ## 快速开始
