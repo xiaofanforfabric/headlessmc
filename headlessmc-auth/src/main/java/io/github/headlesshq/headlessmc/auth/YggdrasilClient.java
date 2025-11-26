@@ -21,6 +21,69 @@ public class YggdrasilClient {
         this.authServerUrl = authServerUrl;
     }
 
+    /**
+     * Get available profiles list without authentication
+     * 获取可用角色列表（不进行认证）
+     * @param username Username / 用户名
+     * @param password Password / 密码
+     * @return List of available profiles / 可用角色列表
+     * @throws IOException If request fails / 如果请求失败
+     */
+    public List<YggdrasilSession.Profile> getProfiles(String username, String password) throws IOException {
+        log.debug("Getting profiles from Yggdrasil server: " + authServerUrl);
+        
+        String baseUrl = authServerUrl.endsWith("/") ? authServerUrl.substring(0, authServerUrl.length() - 1) : authServerUrl;
+        URL url = new URL(baseUrl + "/authserver/authenticate");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        // Build request payload - only request profiles, not token
+        JsonObject request = new JsonObject();
+        JsonObject agent = new JsonObject();
+        agent.addProperty("name", "Minecraft");
+        agent.addProperty("version", 1);
+        request.add("agent", agent);
+        request.addProperty("username", username);
+        request.addProperty("password", password);
+        request.addProperty("requestUser", true);
+
+        // Send request
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(request.toString().getBytes(StandardCharsets.UTF_8));
+        }
+
+        // Read response
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            String errorMessage = readErrorResponse(conn);
+            throw new IOException("Failed to get profiles: " + responseCode + " - " + errorMessage);
+        }
+
+        String response = readResponse(conn);
+        JsonObject jsonResponse = JsonParser.parseString(response).getAsJsonObject();
+
+        // Parse availableProfiles
+        List<YggdrasilSession.Profile> availableProfiles = new ArrayList<>();
+        if (jsonResponse.has("availableProfiles") && jsonResponse.get("availableProfiles").isJsonArray()) {
+            com.google.gson.JsonArray profilesArray = jsonResponse.getAsJsonArray("availableProfiles");
+            for (com.google.gson.JsonElement element : profilesArray) {
+                JsonObject profileObj = element.getAsJsonObject();
+                availableProfiles.add(new YggdrasilSession.Profile(
+                    profileObj.get("id").getAsString(),
+                    profileObj.get("name").getAsString()
+                ));
+            }
+        }
+
+        if (availableProfiles.isEmpty()) {
+            throw new IOException("No profiles available for this account");
+        }
+
+        return availableProfiles;
+    }
+
     public YggdrasilSession authenticate(String username, String password) throws IOException {
         log.debug("Authenticating with Yggdrasil server: " + authServerUrl);
         

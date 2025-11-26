@@ -43,10 +43,11 @@ public class AccountManager {
     @Synchronized
     public void addYggdrasilAccount(io.github.headlesshq.headlessmc.auth.YggdrasilAccount account) {
         log.info("Adding Yggdrasil account to account manager: " + account.getName() + " / 添加 Yggdrasil 账户到账户管理器: " + account.getName());
+        // 覆盖模式：完全移除旧账户（包括用户名和密码），不保留任何旧信息
         removeYggdrasilAccount(account);
         yggdrasilAccounts.add(0, account);
         save();
-        log.info("Yggdrasil account saved: " + account.getName() + " / Yggdrasil 账户已保存: " + account.getName());
+        log.info("Yggdrasil account saved (overwrite mode): " + account.getName() + " / Yggdrasil 账户已保存（覆盖模式）: " + account.getName());
     }
 
     @Synchronized
@@ -58,9 +59,10 @@ public class AccountManager {
 
     @Synchronized
     public void removeYggdrasilAccount(io.github.headlesshq.headlessmc.auth.YggdrasilAccount account) {
+        // 覆盖模式：完全移除所有同名账户，确保不保留旧账户的任何信息（包括用户名和密码）
         yggdrasilAccounts.remove(account);
         yggdrasilAccounts.removeIf(s -> Objects.equals(account.getName(), s.getName()));
-        save();
+        // 注意：这里不调用 save()，因为 addYggdrasilAccount 会调用 save()
     }
 
     @Synchronized

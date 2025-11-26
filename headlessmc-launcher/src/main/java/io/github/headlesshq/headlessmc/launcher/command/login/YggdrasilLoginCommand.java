@@ -11,6 +11,7 @@ import io.github.headlesshq.headlessmc.launcher.Launcher;
 import io.github.headlesshq.headlessmc.launcher.command.AbstractLauncherCommand;
 
 import java.io.IOException;
+import java.util.List;
 
 @CustomLog
 public class YggdrasilLoginCommand extends AbstractLauncherCommand {
@@ -105,37 +106,29 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         logInfo("Validating username and password... / 正在验证用户名和密码...");
         
         try {
-            // Create Yggdrasil client and authenticate
+            // Step 1: Get profiles list without token
             YggdrasilClient client = new YggdrasilClient(serverUrl);
-            YggdrasilSession session = client.authenticate(username, password);
+            List<YggdrasilSession.Profile> profiles = client.getProfiles(username, password);
             
             logInfo("Username and password validated successfully / 用户名密码验证正确");
+            logInfo("Found " + profiles.size() + " profile(s) on external server / 在外置服务器找到 " + profiles.size() + " 个角色:");
             
-            // Handle multi-profile selection
-            YggdrasilSession.Profile selectedProfile = session.getSelectedProfile();
-            
-            // Log found profiles
-            if (session.getAvailableProfiles() != null && !session.getAvailableProfiles().isEmpty()) {
-                int profileCount = session.getAvailableProfiles().size();
-                logInfo("Found " + profileCount + " profile(s) on external server / 在外置服务器找到 " + profileCount + " 个角色:");
-                
-                int index = 1;
-                for (YggdrasilSession.Profile profile : session.getAvailableProfiles()) {
-                    String marker = profile.equals(selectedProfile) ? " [Current Default / 当前默认]" : "";
-                    logInfo("  " + index + ". " + profile.getName() + " (UUID: " + profile.getId() + ")" + marker);
-                    index++;
-                }
+            // Step 2: List all profiles
+            int index = 1;
+            for (YggdrasilSession.Profile profile : profiles) {
+                logInfo("  " + index + ". " + profile.getName() + " (UUID: " + profile.getId() + ")");
+                index++;
             }
             
-            // If multiple profiles, let user select
-            if (session.getAvailableProfiles() != null && session.getAvailableProfiles().size() > 1) {
-                selectProfileAndLogin(session, selectedProfile, serverUrl);
-                return; // Selection happens in callback, return directly
+            // Step 3: Let user select profile (保存原始用户名和密码)
+            if (profiles.size() > 1) {
+                selectProfileAndLogin(username, password, profiles, serverUrl);
+            } else {
+                // Only one profile, use it directly
+                YggdrasilSession.Profile selectedProfile = profiles.get(0);
+                logInfo("Selected profile: " + selectedProfile.getName() + " / 玩家已选择: " + selectedProfile.getName());
+                authenticateWithProfile(selectedProfile.getName(), password, serverUrl, selectedProfile, username);
             }
-            
-            // Only one profile, login directly
-            logInfo("Selected profile: " + selectedProfile.getName() + " / 玩家已选择: " + selectedProfile.getName());
-            createAndAddAccount(serverUrl, session, selectedProfile);
             
         } catch (IOException e) {
             logError("Login failed: " + e.getMessage() + " / 登录失败: " + e.getMessage());
@@ -185,42 +178,40 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
         }
     }
 
-    private void selectProfileAndLogin(YggdrasilSession session, YggdrasilSession.Profile defaultProfile, String serverUrl) {
-        String helpMessage = "Enter profile number to use (1-" + session.getAvailableProfiles().size() + ", or press Enter to use current profile, type 'abort' to cancel) / 请输入要使用的角色编号 (1-" + session.getAvailableProfiles().size() + ", 或按 Enter 使用当前角色, 输入 'abort' 取消):";
+    private void selectProfileAndLogin(String username, String password, List<YggdrasilSession.Profile> profiles, String serverUrl) {
+        String helpMessage = "Enter profile number to use (1-" + profiles.size() + ", type 'abort' to cancel) / 请输入要使用的角色编号 (1-" + profiles.size() + ", 输入 'abort' 取消):";
         logInfo(helpMessage);
         
         CommandLine clm = ctx.getCommandLine();
         clm.setWaitingForInput(true);
+        // 保存原始用户名和密码到闭包中
+        final String originalUsername = username;
+        final String originalPassword = password;
         clm.setCommandContext(
             new LoginContext(ctx, clm.getCommandContext(), helpMessage) {
                 @Override
                 protected void onCommand(String input) {
                     try {
-                        YggdrasilSession.Profile selected = defaultProfile;
-                        
-                        if (input != null && !input.trim().isEmpty()) {
-                            try {
-                                int selectedNumber = Integer.parseInt(input.trim());
-                                // User input is display number (1-based), convert to index (0-based)
-                                int selectedIndex = selectedNumber - 1;
-                                if (selectedIndex >= 0 && selectedIndex < session.getAvailableProfiles().size()) {
-                                    selected = session.getAvailableProfiles().get(selectedIndex);
-                                    logInfo("Selected profile: " + selected.getName() + " / 玩家已选择: " + selected.getName());
-                                } else {
-                                    logWarn("Invalid number " + selectedNumber + ", using current profile: " + defaultProfile.getName() + " / 无效的编号 " + selectedNumber + "，使用当前角色: " + defaultProfile.getName());
-                                    selected = defaultProfile;
-                                }
-                            } catch (NumberFormatException e) {
-                                logWarn("Invalid input, using current profile: " + defaultProfile.getName() + " / 无效的输入，使用当前角色: " + defaultProfile.getName());
-                                selected = defaultProfile;
-                            }
-                        } else {
-                            logInfo("Selected profile: " + defaultProfile.getName() + " (using default) / 玩家已选择: " + defaultProfile.getName() + " (使用默认角色)");
-                            selected = defaultProfile;
+                        if (input == null || input.trim().isEmpty()) {
+                            logWarn("Please select a profile number / 请选择角色编号");
+                            return;
                         }
                         
-                        // Create and add account
-                        createAndAddAccount(serverUrl, session, selected);
+                        try {
+                            int selectedNumber = Integer.parseInt(input.trim());
+                            // User input is display number (1-based), convert to index (0-based)
+                            int selectedIndex = selectedNumber - 1;
+                            if (selectedIndex >= 0 && selectedIndex < profiles.size()) {
+                                YggdrasilSession.Profile selected = profiles.get(selectedIndex);
+                                logInfo("Selected profile: " + selected.getName() + " / 玩家已选择: " + selected.getName());
+                                // Use selected profile name as username to request token, but save original username
+                                authenticateWithProfile(selected.getName(), originalPassword, serverUrl, selected, originalUsername);
+                            } else {
+                                logWarn("Invalid number " + selectedNumber + ", please select 1-" + profiles.size() + " / 无效的编号 " + selectedNumber + "，请选择 1-" + profiles.size());
+                            }
+                        } catch (NumberFormatException e) {
+                            logWarn("Invalid input, please enter a number / 无效的输入，请输入数字");
+                        }
                     } finally {
                         returnToPreviousContext();
                         clm.setWaitingForInput(false);
@@ -228,23 +219,61 @@ public class YggdrasilLoginCommand extends AbstractLauncherCommand {
                 }
             });
     }
+    
+    /**
+     * Authenticate with selected profile name and password
+     * 使用选择的角色名和密码进行认证
+     * @param profileName 选择的角色名（用于请求token）
+     * @param password 密码
+     * @param serverUrl 服务器URL
+     * @param profile 角色信息
+     * @param originalUsername 原始用户名（用于保存到账户）
+     */
+    private void authenticateWithProfile(String profileName, String password, String serverUrl, YggdrasilSession.Profile profile, String originalUsername) {
+        try {
+            logInfo("Requesting accessToken with profile name: " + profileName + " / 使用角色名请求 accessToken: " + profileName);
+            
+            YggdrasilClient client = new YggdrasilClient(serverUrl);
+            // Use profile name as username to request token
+            YggdrasilSession session = client.authenticate(profileName, password);
+            
+            logInfo("AccessToken received successfully / AccessToken 获取成功");
+            createAndAddAccount(serverUrl, session, profile, originalUsername, password);
+        } catch (Exception e) {
+            logError("Failed to authenticate with profile: " + e.getMessage() + " / 使用角色认证失败: " + e.getMessage());
+            if (log != null) {
+                log.error("Authentication error", e);
+            }
+        }
+    }
 
-    private void createAndAddAccount(String serverUrl, YggdrasilSession session, YggdrasilSession.Profile profile) {
+    /**
+     * Create and add Yggdrasil account with username and password
+     * 创建并添加 Yggdrasil 账户，包含用户名和密码
+     * 覆盖模式：如果已存在同名账户，将完全覆盖旧账户（包括用户名和密码）
+     */
+    private void createAndAddAccount(String serverUrl, YggdrasilSession session, YggdrasilSession.Profile profile, String username, String password) {
         String accessToken = session.getAccessToken();
         String maskedToken = maskToken(accessToken);
         
         logInfo("Received accessToken: " + maskedToken + " / 请求到的 accessToken: " + maskedToken);
         
+        // 覆盖模式：创建新账户时使用新的用户名和密码，完全替换旧账户
         YggdrasilAccount account = new YggdrasilAccount(
             serverUrl,
             accessToken,
             session.getClientToken(),
             profile.getId(),
-            profile.getName()
+            profile.getName(),
+            username,  // 保存新的原始用户名（覆盖模式，不保留旧用户名）
+            password    // 保存新密码（覆盖模式，不保留旧密码）
         );
         
+        // addYggdrasilAccount 会自动移除同名旧账户，然后添加新账户
         ctx.getAccountManager().addYggdrasilAccount(account);
         logInfo("Login successful! Account: " + account.getName() + " / 登录成功！账户: " + account.getName());
+        logInfo("Account overwritten in overwrite mode / 账户已以覆盖模式保存");
+        logInfo("Username and password saved to .accounts.json / 用户名和密码已保存到 .accounts.json");
         logInfo("========================================");
     }
     
