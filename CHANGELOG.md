@@ -1,5 +1,39 @@
 # Changelog
 
+## [3.0.0-RC9](https://github.com/xiaofanforfabric/headlessmc/compare/3.0.0-RC8...3.0.0-RC9) (2026-10-23)
+
+
+### Features
+
+* **auth:** do not store the Yggdrasil password on disk ([d2bd2b9](https://github.com/xiaofanforfabric/headlessmc/commit/d2bd2b95f66903462980efec22f85778fd53dc82))
+* **auth:** hint about authlib-injector for Yggdrasil accounts ([5d6190d](https://github.com/xiaofanforfabric/headlessmc/commit/5d6190d9e20730c86747be5e8ae6a3a8c46bf958))
+* **auth:** implement the Yggdrasil auth provider ([7441c40](https://github.com/xiaofanforfabric/headlessmc/commit/7441c4016ef20c4c39b914675b26e7d4bd4e8db7))
+* **auth:** make the Yggdrasil api path configurable ([18ea295](https://github.com/xiaofanforfabric/headlessmc/commit/18ea2950ee2134749cf41673522f07830edbcf69))
+* **auth:** make the Yggdrasil login path configurable ([16e08e4](https://github.com/xiaofanforfabric/headlessmc/commit/16e08e489d8aeda40a5a22730e000917978f6718))
+* **auth:** validate the Yggdrasil session before launching ([d236934](https://github.com/xiaofanforfabric/headlessmc/commit/d2369348f612bb831996697603f819cc12540697))
+* **commands:** made login and install/download separate hidden commands ([#479](https://github.com/xiaofanforfabric/headlessmc/issues/479)) ([e29809e](https://github.com/xiaofanforfabric/headlessmc/commit/e29809edea8f201ee57d06a2ec8e247abddb0703))
+* **server:** launch forge and neoforge run.sh/run.bat scripts ([#450](https://github.com/xiaofanforfabric/headlessmc/issues/450)) ([9061cd7](https://github.com/xiaofanforfabric/headlessmc/commit/9061cd79273fab4ca538938724c9b1865cb041db))
+* **specifics:** pass specifics to game system properties ([#470](https://github.com/xiaofanforfabric/headlessmc/issues/470)) ([2fe59a7](https://github.com/xiaofanforfabric/headlessmc/commit/2fe59a70f73407e1098c4520e0702a0f0c22cfd6))
+
+
+### Bug Fixes
+
+* **auth:** check isEnabled when the provider is used, not at startup ([120ebde](https://github.com/xiaofanforfabric/headlessmc/commit/120ebde5b014f2b2794ebc9bbbc469c127761a3e))
+* **deps:** update asm to v9.11 ([#461](https://github.com/xiaofanforfabric/headlessmc/issues/461)) ([983b648](https://github.com/xiaofanforfabric/headlessmc/commit/983b6486a2213399c2fea0b2b010ca610332088a))
+* **deps:** update asm to v9.11.1 ([#481](https://github.com/xiaofanforfabric/headlessmc/issues/481)) ([62bbfca](https://github.com/xiaofanforfabric/headlessmc/commit/62bbfca5256c6b8393154eb29a9f724c91aa8977))
+* **deps:** update dependency io.quarkus to v3.40.1.1 ([#483](https://github.com/xiaofanforfabric/headlessmc/issues/483)) ([79dcdbd](https://github.com/xiaofanforfabric/headlessmc/commit/79dcdbda61335fa8066fe2d5a584a1edc15da866))
+* **deps:** update dependency net.fabricmc:fabric-installer to v1.1.2 ([#459](https://github.com/xiaofanforfabric/headlessmc/issues/459)) ([ce550e4](https://github.com/xiaofanforfabric/headlessmc/commit/ce550e40649a55a0c1127f97d2a19da4a7312304))
+* **deps:** update jline to v4.4.8 ([#460](https://github.com/xiaofanforfabric/headlessmc/issues/460)) ([a3f1385](https://github.com/xiaofanforfabric/headlessmc/commit/a3f138578f09ee0a6a5fa49d5d142bf6b94842a6))
+* **deps:** update plugin versions to v0.66.0 ([#463](https://github.com/xiaofanforfabric/headlessmc/issues/463)) ([37fbe9c](https://github.com/xiaofanforfabric/headlessmc/commit/37fbe9cc9c15f4d185bb07411a71f90f549355e7))
+* **launch:** do not take a Yggdrasil account for a purchased copy ([2223ca0](https://github.com/xiaofanforfabric/headlessmc/commit/2223ca065ae4c5bbc1010b5587d14685cec7146f))
+* **launch:** keep hasGame() from forcing headless for other providers ([cb9b997](https://github.com/xiaofanforfabric/headlessmc/commit/cb9b9978a316d2a177b3e7747e9351d3f8b6c048))
+* **launch:** pass the provider specific user type and dashed uuids ([e293bb1](https://github.com/xiaofanforfabric/headlessmc/commit/e293bb14b23a10ec3116b79457416ba07b633f68))
+* **lwjgl:** relocate ASM in agent jar and report transform failures ([#473](https://github.com/xiaofanforfabric/headlessmc/issues/473)) ([aa14b29](https://github.com/xiaofanforfabric/headlessmc/commit/aa14b293b56cfb437a3a37fec61c62c47dab90ec)), closes [#471](https://github.com/xiaofanforfabric/headlessmc/issues/471) [#472](https://github.com/xiaofanforfabric/headlessmc/issues/472)
+* **net:** delete files when hash verification failed ([#474](https://github.com/xiaofanforfabric/headlessmc/issues/474)) ([544db67](https://github.com/xiaofanforfabric/headlessmc/commit/544db67fa2984f7e6e71f18bbe9775d8947d2e6a))
+* **server:** fix server testing and full std buffers on windows ([#453](https://github.com/xiaofanforfabric/headlessmc/issues/453)) ([53137b0](https://github.com/xiaofanforfabric/headlessmc/commit/53137b0b55668f430aca8abed06a7c22f330738f))
+* **test:** fix test WAIT timeout ([#476](https://github.com/xiaofanforfabric/headlessmc/issues/476)) ([00cd6fb](https://github.com/xiaofanforfabric/headlessmc/commit/00cd6fb49f8755d4db162e3900bde3bb54d4cb38))
+* **windows:** fixed line ending and patching issues ([#466](https://github.com/xiaofanforfabric/headlessmc/issues/466)) ([5b16cbf](https://github.com/xiaofanforfabric/headlessmc/commit/5b16cbf6a00ec75ba0dedd31b2e8aa6eb103a204))
+
 ## [3.0.0-RC8](https://github.com/headlesshq/headlessmc/compare/3.0.0-RC7...3.0.0-RC8) (2026-10-15)
 
 
