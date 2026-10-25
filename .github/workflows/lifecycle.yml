@@ -7,8 +7,9 @@ name: Lifecycle
     branches:
       - main
     # Release tags are pushed separately, see scripts/release-cn.sh.
+    # Glob syntax, not a regex.
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+*'
+      - '[0-9]*.[0-9]*.[0-9]*'
   pull_request:
     types:
       #- closed
