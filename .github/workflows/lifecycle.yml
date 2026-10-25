@@ -6,6 +6,9 @@ name: Lifecycle
   push:
     branches:
       - main
+    # Release tags are pushed separately, see scripts/release-cn.sh.
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
     types:
       #- closed
@@ -28,20 +31,29 @@ env:
 jobs:
   release-please:
     name: Release Please
-    if: github.event_name == 'push'
+    # Fork: releases are cut by scripts/release-cn.sh, which pushes a tag. The
+    # job only provides the version for the other jobs to key off.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release-please.outputs.release_created }}
-      tag_name: ${{ steps.release-please.outputs.tag_name }}
+      release_created: ${{ steps.version.outputs.release_created }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - id: release-please
-        name: Run Release Please
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      # A tag push builds that tag, so tag_name can come from the ref. The
+      # release itself is created by the release job, not by release-please.
+      - id: version
+        name: Resolve version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = 'tag' ]; then
+            echo "tag_name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "release_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=" >> "$GITHUB_OUTPUT"
+            echo "release_created=false" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
     runs-on: ubuntu-latest
@@ -602,8 +614,16 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
       - name: Display structure of downloaded files
         run: ls -R
+      - name: Create the release
+        # release-please used to create it, but releases are cut from a tag now.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$TAG_NAME" --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG_NAME" --generate-notes --prerelease
       - name: Upload release assets
-        # the release itself (tag and notes) has been created by release-please
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
