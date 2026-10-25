@@ -135,7 +135,8 @@ jobs:
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
 
   deploy-pages:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main')
+    # Fork: needs GitHub Pages to be enabled, disabled to keep the release green.
+    if: false
     needs: build
     permissions:
       pages: write
@@ -438,6 +439,9 @@ jobs:
           retention-days: 7
 
   docker-build:
+    # Fork: needs the DOCKERHUB_* secrets and pushes to upstream's Docker Hub
+    # repository, disabled to keep the release green.
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -512,9 +516,8 @@ jobs:
           retention-days: 1
 
   docker-release:
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+    # Fork: disabled together with docker-build.
+    if: false
     runs-on: ubuntu-latest
     needs: [ release-please, docker-build, build, build-natives]
     environment:
@@ -559,7 +562,7 @@ jobs:
   merge:
     runs-on: ubuntu-latest
     if: needs.release-please.outputs.release_created == 'true'
-    needs: [release-please, build, build-natives, docker-release]
+    needs: [release-please, build, build-natives]
     steps:
       - name: Cleanup Docker
         uses: geekyeggo/delete-artifact@176a747ab7e287e3ff4787bf8a148716375ca118 # v6
@@ -589,7 +592,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: needs.release-please.outputs.release_created == 'true'
-    needs: [release-please, merge, docker-build]
+    needs: [release-please, merge]
     permissions:
       contents: write
     steps:
@@ -614,27 +617,21 @@ jobs:
 
   maven-central:
     name: Publish to Maven Central
+    # Fork: disabled, publishing to upstream's Maven Central coordinates is not
+    # wanted here.
+    if: false
     runs-on: ubuntu-latest
     # Releases on Maven Central are immutable, so this job runs last and only if every other job succeeded.
     # Keep this list in sync with all jobs of this workflow!
     needs:
       - release-please
       - build
-      - deploy-pages
       - build-natives
       - build-mc-runtime-test
       - mc-runtime-test
       - server-test
-      - docker-build
-      - docker-release
       - merge
       - release
-    if: >-
-      !cancelled()
-      && needs.release-please.outputs.release_created == 'true'
-      && !contains(needs.*.result, 'failure')
-      && !contains(needs.*.result, 'cancelled')
-      && !contains(needs.*.result, 'skipped')
     # holds the secrets, can be protected with required reviewers
     environment:
       name: maven-central
