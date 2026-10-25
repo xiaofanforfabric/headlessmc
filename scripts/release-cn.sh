@@ -104,7 +104,9 @@ print(f'{path}: version={version}')
 EOF
 
 git add gradle.properties
-git commit -q -m "chore(release): $VERSION"
+# The Lifecycle workflow only builds main pushes whose message contains
+# "release:", so the commit has to carry it.
+git commit -q -m "release: $VERSION"
 git tag -a "$VERSION" -m "$VERSION"
 
 echo
@@ -112,5 +114,6 @@ echo "Created commit and tag. To publish:"
 echo
 echo "    git push origin main && git push origin $VERSION"
 echo
-echo "The Lifecycle workflow builds the jars and native images, then uploads"
-echo "them to the GitHub release for the tag."
+echo "Pushing the tag builds the jars and native images, then creates the"
+echo "GitHub release for the tag. Pushing main alone only builds because the"
+echo "commit message starts with 'release:'."

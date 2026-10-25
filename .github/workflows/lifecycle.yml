@@ -31,9 +31,15 @@ env:
 jobs:
   release-please:
     name: Release Please
-    # Fork: releases are cut by scripts/release-cn.sh, which pushes a tag. The
-    # job only provides the version for the other jobs to key off.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Fork: a full run takes about an hour, mostly for the native images and
+    # the minecraft tests, so a push to main only builds when the commit asks
+    # for it. Tag pushes always build, see scripts/release-cn.sh.
+    if: >-
+      github.event_name == 'push'
+      && (github.ref != 'refs/heads/main'
+          || contains(github.event.head_commit.message, 'release:')
+          || contains(github.event.head_commit.message, 'beta:')
+          || contains(github.event.head_commit.message, 'RC:'))
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.version.outputs.release_created }}
@@ -56,6 +62,9 @@ jobs:
           fi
 
   build:
+    needs: release-please
+    # Skipped when release-please decided this push does not need a build.
+    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -173,6 +182,8 @@ jobs:
   # run the tests of all modules on the other platforms, to catch platform specific bugs
   # ubuntu is covered by the build job
   test:
+    needs: release-please
+    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -306,6 +317,8 @@ jobs:
 
   # https://github.com/headlesshq/headlessmc/issues/333
   build-mc-runtime-test:
+    needs: release-please
+    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }}
     strategy:
       fail-fast: false
       matrix:
@@ -349,7 +362,7 @@ jobs:
           - { mc: 1.12.2,  type: lexforge, modloader: forge,    java: 8,  xvfb: true  }
           - { mc: 1.8.9,   type: lexforge, modloader: forge,    java: 8,  xvfb: true  }
     runs-on: ubuntu-latest
-    if: '!cancelled()' # run always cause we want to see how each version is doing
+    if: ${{ !cancelled() && needs.build.result == 'success' }} # also skips when the build was skipped
     #if: false for when mc-runtime-test is up to date and HeadlessMc can launch any version
     needs: [ build, build-mc-runtime-test ]
     steps:
@@ -392,7 +405,8 @@ jobs:
 
   server-test:
     name: server-test ${{ matrix.platform }} ${{ matrix.mc }} ${{ matrix.os }}${{ (matrix.platform == 'forge' || matrix.platform == 'neoforge') && (matrix.mock-java && ' mock-java' || ' script') || '' }}
-    needs: build
+    needs: [release-please, build]
+    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
