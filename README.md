@@ -1,10 +1,10 @@
 <!--suppress HtmlDeprecatedAttribute -->
 <div align="right">
-  <a href="https://github.com/xiaofanforfabric/headlessmc">中文</a> | English
+  中文 | <a href="https://github.com/headlesshq/headlessmc">English</a>
 </div>
 
 <h1 align="center" style="font-weight: normal;"><b>HeadlessMc</b></h1>
-<p align="center">A command line launcher for Minecraft Java Edition.</p>
+<p align="center">Minecraft Java 版的命令行启动器。</p>
 <p align="center"><img src="logo.svg" alt="logo" style="width:250px;"></p>
 <p align="center"><a href="https://github.com/headlesshq/mc-runtime-test">Mc-Runtime-Test</a> | HMC | <a href="https://github.com/headlesshq/hmc-specifics">HMC-Specifics</a> | <a href="https://github.com/headlesshq/hmc-optimizations">HMC-Optimizations</a></p>
 
@@ -20,19 +20,19 @@
 </div>
 
 > [!WARNING]
-> NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
+> 本产品并非官方 Minecraft 产品，未经 Mojang 或 Microsoft 批准，也与其无关。
 >
-> HeadlessMc will not allow you to play without having bought Minecraft!
-> Accounts will always be validated.
-> Offline accounts can only be used to run the game headlessly in CI/CD pipelines.
+> HeadlessMc 不允许你在未购买 Minecraft 的情况下游玩！
+> 账号始终会被验证。
+> 离线账号只能用于在 CI/CD 流水线中以无头模式运行游戏。
 
-HeadlessMc is a feature rich launcher for Minecraft Java Edition that runs in your terminal.
-It can run the Minecraft client in headless mode, e.g. enabling you to run it on CI/CD runners.
-What's more, it handles various mod loaders, modpacks, mods, resourcepacks, shaderpacks, datapacks...
-Even servers can be managed using HeadlessMc.
+HeadlessMc 是一个功能丰富的 Minecraft Java 版启动器，运行在你的终端中。
+它可以让 Minecraft 客户端以无头模式运行，例如让你在 CI/CD 运行器上运行游戏。
+此外，它还支持各种模组加载器、整合包、模组、资源包、光影包、数据包……
+甚至可以用 HeadlessMc 管理服务器。
 
-Download the latest release and visit our [Getting Started](https://headlesshq.github.io/headlessmc/getting-started/)
-page to get started, it's as easy as:
+下载最新发行版并访问[快速上手](https://headlesshq.github.io/headlessmc/getting-started/)
+页面开始使用，只需两步：
 ```shell
 > headlessmc login
 > headlessmc launch fabric 26.3
