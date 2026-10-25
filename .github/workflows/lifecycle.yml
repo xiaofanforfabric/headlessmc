@@ -319,7 +319,6 @@ jobs:
   # https://github.com/headlesshq/headlessmc/issues/333
   build-mc-runtime-test:
     needs: release-please
-    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }}
     strategy:
       fail-fast: false
       matrix:
@@ -332,8 +331,7 @@ jobs:
           - { branch: 286a6d64008be90fc82f8ffadb8f111adab6907e, dir: 1_12,    mc: 1.12.2,  lex: 14.23.5.2860,       neo: '',      java: 8 }
           - { branch: 286a6d64008be90fc82f8ffadb8f111adab6907e, dir: 1_8_9,   mc: 1.8.9,   lex: 11.15.1.2318-1.8.9, neo: '',      java: 8 }
     uses: ./.github/workflows/build-runtime-test.yml
-    if: '!cancelled()' # run always cause we want to see how each version is doing
-    #if: false for when mc-runtime-test is up to date and HeadlessMc can launch any version
+    if: ${{ !cancelled() && needs.release-please.result != 'skipped' }} # also skips when release-please was skipped
     with:
       branch: ${{ matrix.version.branch }}
       dir: ${{ matrix.version.dir }}
