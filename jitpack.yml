@@ -1,7 +1,9 @@
-jdk:
-  - openjdk25
+# JitPack ships a fixed set of JDKs and 21 is the newest one, but the project
+# compiles with release 25, so install it through SDKMAN first.
+before_install:
+  - sdk install java 25-open
+  - sdk use java 25-open
 
-# JitPack runs this instead of the default "install" task, which would trigger
-# the full publish pipeline including signing.
+# The default is "build publishToMavenLocal", and build would run the tests.
 install:
   - ./gradlew publishToMavenLocal -x test -x javadoc
