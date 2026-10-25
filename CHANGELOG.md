@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.0-RC10](https://github.com/xiaofanforfabric/headlessmc/compare/3.0.0-RC9...3.0.0-RC10) (2026-10-25)
+
+
+### Features
+
+* 提交没有任何用的注释触发发版PR ([94aeacb](https://github.com/xiaofanforfabric/headlessmc/commit/94aeacb8ebb4114fceafedb77838eec5f5061815))
+
 ## [3.0.0-RC9](https://github.com/xiaofanforfabric/headlessmc/compare/3.0.0-RC8...3.0.0-RC9) (2026-10-25)
 
 
