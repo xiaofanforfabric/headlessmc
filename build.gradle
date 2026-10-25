@@ -219,7 +219,8 @@ allprojects {
 
     def signingKey = providers.environmentVariable('SIGNING_KEY')
     signing {
-        required = signingKey.present
+        // JitPack has no signing key and its artifacts do not need to be signed.
+        required = signingKey.present && !providers.environmentVariable('JITPACK').isPresent()
         if (signingKey.present) {
             useInMemoryPgpKeys(signingKey.get(), providers.environmentVariable('SIGNING_PASSWORD').getOrElse(''))
         }

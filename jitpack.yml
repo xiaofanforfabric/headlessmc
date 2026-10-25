@@ -1,0 +1,7 @@
+jdk:
+  - openjdk25
+
+# JitPack runs this instead of the default "install" task, which would trigger
+# the full publish pipeline including signing.
+install:
+  - ./gradlew publishToMavenLocal -x test -x javadoc
