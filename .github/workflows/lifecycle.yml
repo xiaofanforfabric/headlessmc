@@ -1,5 +1,7 @@
 name: Lifecycle
 
+
+# This workflow is the main workflow of HeadlessMc, it runs on every push to main and on every pull request.
 "on":
   push:
     branches:
