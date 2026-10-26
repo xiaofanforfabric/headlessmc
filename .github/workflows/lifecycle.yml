@@ -34,10 +34,11 @@ jobs:
     name: Release Please
     # Fork: a full run takes about an hour, mostly for the native images and
     # the minecraft tests, so a push to main only builds when the commit asks
-    # for it. Tag pushes always build, see scripts/release-cn.sh.
+    # for it. Tag pushes and pull requests always build.
     if: >-
-      github.event_name == 'push'
-      && (github.ref != 'refs/heads/main'
+      !cancelled()
+      && (github.event_name != 'push'
+          || github.ref != 'refs/heads/main'
           || contains(github.event.head_commit.message, 'release:')
           || contains(github.event.head_commit.message, 'beta:')
           || contains(github.event.head_commit.message, 'RC:'))
@@ -225,8 +226,9 @@ jobs:
   build-natives:
     runs-on: ${{ matrix.os.os }}
     needs: release-please
-    # release-please is skipped on pull requests, run anyway
-    if: ${{ !cancelled() && needs.release-please.result != 'failure' }}
+    # Fork: release-please is also skipped for main pushes that do not ask for
+    # a build, so check for skipped rather than failure.
+    if: ${{ !cancelled() && needs.release-please.result == 'success' }}
     strategy:
       matrix:
         os:
