@@ -256,6 +256,15 @@ public class ConfigTest {
     }
 
     @Test
+    public void optionalPropertiesWithoutValueAreListed() {
+        String optional = "hmc.test.properties.test-optional";
+        assertFalse(configService.getConfig().getOptionalValue(optional, String.class).isPresent());
+        assertTrue(configService.getPropertyNames().contains(optional));
+        assertTrue(configService.getOptionalPropertyNames().contains(optional));
+        assertFalse(configService.getOptionalPropertyNames().contains(PROP));
+    }
+
+    @Test
     public void bindCachesTheSupplierResultUntilTheConfigChanges() {
         AtomicInteger calls = new AtomicInteger();
         Supplier<Object> mapping = () -> {
@@ -287,9 +296,30 @@ public class ConfigTest {
     }
 
     @Test
+    public void bindCachesByKeyRatherThanBySupplier() {
+        AtomicInteger calls = new AtomicInteger();
+
+        Object first = configService.bind("bindCachesByKeyRatherThanBySupplier", () -> calls.incrementAndGet());
+        Object second = configService.bind("bindCachesByKeyRatherThanBySupplier", () -> calls.incrementAndGet());
+
+        assertSame(first, second);
+        assertEquals(1, calls.get(), "a new supplier for the same key must reuse the cached value");
+    }
+
+    @Test
+    public void bindAllowsBindingOtherKeysWhileComputing() {
+        Object outer = configService.bind(
+            "bindAllowsBindingOtherKeysWhileComputing.outer",
+            () -> configService.bind("bindAllowsBindingOtherKeysWhileComputing.inner", Object::new)
+        );
+
+        assertSame(outer, configService.bind("bindAllowsBindingOtherKeysWhileComputing.inner", Object::new));
+    }
+
+    @Test
     public void bindReturnsTheUnwrappedValueForNonObjectTypes() {
         Path expected = Path.of("some", "path");
-        Path result = configService.bind("bindInvalidatesItsCacheWhenTheConfigChanges", () -> expected);
+        Path result = configService.bind("bindReturnsTheUnwrappedValueForNonObjectTypes", () -> expected);
 
         assertSame(expected, result);
     }

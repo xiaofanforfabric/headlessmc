@@ -151,6 +151,11 @@ class ClientLauncherTest {
         }
 
         @Override
+        public boolean autoDownloadSpecifics() {
+            return false;
+        }
+
+        @Override
         public boolean free() {
             return false;
         }
@@ -192,6 +197,7 @@ class ClientLauncherTest {
             new ArgumentTemplateService(),
             Mockito.mock(LastUsedAccountService.class),
             Mockito.mock(SpecificsPropertiesService.class),
+            Mockito.mock(SpecificsDownloader.class),
             versionMatcherService,
             versionJsonService,
             new TemplateStringService(mcFiles, CPU.X64),
@@ -445,6 +451,79 @@ class ClientLauncherTest {
         ArgumentCaptor<List<MavenRepository>> repositories = ArgumentCaptor.forClass(List.class);
         Mockito.verify(classpathService).buildClasspath(any(), any(), any(), repositories.capture());
         assertEquals(fabric.getRepositories(), repositories.getValue());
+    }
+
+    @Test
+    void versionJsonsMatchingNoPlatformCanBeLaunchedDirectly() {
+        FakeVersion aeromania = version("Aeromania");
+        versionJsonService.add(aeromania);
+        Profile profile = new Profile("Aeromania", VersionArg.parse("Aeromania"), root.resolve("game"));
+
+        ProcessLauncher process = launcher().launcher(profile, ACCOUNT, aeromania);
+
+        assertEquals("mc-client-Aeromania", process.getId());
+        RecordingBuilder builder = builder(process);
+        assertEquals(MAIN_CLASS, builder.getMainClass());
+        assertEquals(21, builder.getVersion());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MavenRepository>> repositories = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(classpathService).buildClasspath(any(), any(), any(), repositories.capture());
+        assertEquals(vanilla.getRepositories(), repositories.getValue());
+    }
+
+    @Test
+    void versionJsonsLaunchedDirectlyUseTheRepositoriesOfTheirPlatform() {
+        FakeVersion version = install(version("my-fabric-pack"), "fabric");
+        Profile profile = new Profile("my-fabric-pack", VersionArg.parse("my-fabric-pack"), root.resolve("game"));
+
+        ProcessLauncher process = launcher().launcher(profile, ACCOUNT, version);
+
+        assertEquals("mc-client-fabric/1.21.1", process.getId());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MavenRepository>> repositories = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(classpathService).buildClasspath(any(), any(), any(), repositories.capture());
+        assertEquals(fabric.getRepositories(), repositories.getValue());
+    }
+
+    @Test
+    void versionJsonsLaunchedDirectlyDoNotNeedAnInstalledVersionForTheProfile() {
+        FakeVersion aeromania = version("Aeromania");
+        Profile profile = profile("vanilla", "1.20.4");
+
+        assertEquals("mc-client-Aeromania", launcher().launcher(profile, ACCOUNT, aeromania).getId());
+    }
+
+    @Test
+    void serverArgumentsAreNotAddedForVersionJsonsWithUnknownMinecraftVersion() {
+        FakeVersion aeromania = versionWithGameArgs("Aeromania", "--username", "${auth_player_name}");
+        Profile profile = new Profile("Aeromania", VersionArg.parse("Aeromania"), root.resolve("game"))
+            .withOptions(new LaunchOptions(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(new LaunchOptions.Join(LaunchOptions.Join.Type.SERVER, "example.com")),
+                false
+            ));
+
+        RecordingBuilder builder = builder(launcher().launcher(profile, ACCOUNT, aeromania));
+
+        assertEquals(List.of("--username", "Steve"), builder.getArgs());
+    }
+
+    @Test
+    void versionJsonsWithUnknownMinecraftVersionJoinServersViaQuickPlay() {
+        FakeVersion aeromania = versionWithGameArgs("Aeromania", "--quickPlayMultiplayer", "${quickPlayMultiplayer}");
+        Profile profile = new Profile("Aeromania", VersionArg.parse("Aeromania"), root.resolve("game"))
+            .withOptions(new LaunchOptions(
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(new LaunchOptions.Join(LaunchOptions.Join.Type.SERVER, "example.com")),
+                false
+            ));
+
+        RecordingBuilder builder = builder(launcher().launcher(profile, ACCOUNT, aeromania));
+
+        assertEquals(List.of("--quickPlayMultiplayer", "example.com"), builder.getArgs());
     }
 
     @Test

@@ -5,6 +5,8 @@ import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.configuration.QuarkusConfigBuilderCustomizer;
 import io.smallrye.config.Config;
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.ConfigMappingInterface;
+import io.smallrye.config.ConfigMappings;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
@@ -47,10 +49,13 @@ public class ConfigServiceImpl implements ConfigService {
      */
     public static final int CONFIG_FILE_ORDINAL = 270;
 
+    private static final Object NULL = new Object();
+
     private final Instance<DynamicConfig> dynamicConfigs;
     private final org.eclipse.microprofile.config.Config baseConfig;
 
     private volatile State state;
+    private volatile @Nullable SortedSet<String> optionalPropertyNames;
 
     @Inject
     public ConfigServiceImpl(
@@ -195,7 +200,19 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     @SuppressWarnings("unchecked")
     public <V> V bind(Object key, Supplier<V> mapping) {
-        return (V) state.cache.computeIfAbsent(mapping, _ -> mapping.get());
+        Map<Object, Object> cache = state.cache;
+        Object value = cache.get(key);
+        if (value == null) {
+            // not computeIfAbsent, the mapping may bind other values itself, e.g. by logging through the SecretService
+            V computed = mapping.get();
+            value = computed == null ? NULL : computed;
+            Object previous = cache.putIfAbsent(key, value);
+            if (previous != null) {
+                value = previous;
+            }
+        }
+
+        return value == NULL ? null : (V) value;
     }
 
     @Override
@@ -205,7 +222,29 @@ public class ConfigServiceImpl implements ConfigService {
             propertyNames.add(propertyName);
         }
 
+        propertyNames.addAll(getOptionalPropertyNames());
         return propertyNames;
+    }
+
+    @Override
+    public SortedSet<String> getOptionalPropertyNames() {
+        SortedSet<String> names = optionalPropertyNames;
+        if (names == null) {
+            names = new TreeSet<>();
+            for (Instance.Handle<DynamicConfig> handle : dynamicConfigs.handles()) {
+                ConfigMappings.ConfigClass configClass = ConfigMappings.ConfigClass.configClass(handle.getBean().getBeanClass());
+                for (Map.Entry<String, ConfigMappingInterface.Property> entry : ConfigMappings.getProperties(configClass).entrySet()) {
+                    if (entry.getValue().isOptional() && entry.getValue().isLeaf() && !entry.getKey().contains("*")) {
+                        names.add(entry.getKey());
+                    }
+                }
+            }
+
+            names = Collections.unmodifiableSortedSet(names);
+            optionalPropertyNames = names;
+        }
+
+        return names;
     }
 
     @Produces

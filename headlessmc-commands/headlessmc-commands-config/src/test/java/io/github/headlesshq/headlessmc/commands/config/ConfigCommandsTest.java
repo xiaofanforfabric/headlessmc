@@ -5,16 +5,21 @@ import io.github.headlesshq.headlessmc.config.ConfigException;
 import io.github.headlesshq.headlessmc.config.ConfigService;
 import io.github.headlesshq.headlessmc.config.ConfigServiceImpl;
 import io.github.headlesshq.headlessmc.config.DynamicConfig;
+import io.github.headlesshq.headlessmc.console.CensoringConsole;
 import io.github.headlesshq.headlessmc.console.Completions;
+import io.github.headlesshq.headlessmc.console.Console;
 import io.github.headlesshq.headlessmc.console.ConsoleExtensions;
 import io.github.headlesshq.headlessmc.console.RecordingConsole;
 import io.github.headlesshq.headlessmc.console.format.SimpleTableProvider;
 import io.github.headlesshq.headlessmc.console.format.TableProvider;
+import io.github.headlesshq.headlessmc.console.output.SecretService;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Any;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -32,12 +37,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 public class ConfigCommandsTest {
     private static final String PROPERTY = "hmc.java.download";
+    private static final String TOKEN = "hmc.test.commands.token";
+    private static final String SECRET = "ghp_secret";
 
     @Inject
     ConfigService configService;
 
     @Inject
     ConfigDescriptionService descriptionService;
+
+    @Inject
+    SecretService secretService;
 
     @Inject
     @Any
@@ -51,6 +61,42 @@ public class ConfigCommandsTest {
 
     private final RecordingConsole console = new RecordingConsole();
     private final TableProvider tables = new SimpleTableProvider();
+    private ConfigTable configTable;
+
+    @AfterEach
+    public void removeSecret() {
+        configService.remove(TOKEN);
+    }
+
+    @BeforeEach
+    public void setupConfigTable() {
+        configTable = new ConfigTable(descriptionService, tables);
+    }
+
+    private static RecordingConsole editingConsole(List<String> edited, String result) {
+        return new RecordingConsole() {
+            @Override
+            public Optional<ConsoleExtensions> extensions() {
+                return Optional.of(new ConsoleExtensions() {
+                    @Override
+                    public String edit(String initialString) {
+                        edited.add(initialString);
+                        return result;
+                    }
+
+                    @Override
+                    public String read(String prompt, Completions completions) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                    @Override
+                    public int getWidth() {
+                        return 80;
+                    }
+                });
+            }
+        };
+    }
 
     private String output() {
         return console.output();
@@ -58,7 +104,7 @@ public class ConfigCommandsTest {
 
     @Test
     public void theConfigCommandListsAllHmcProperties() {
-        ConfigCommand command = new ConfigCommand(descriptionService, configService.fork(), tables, console);
+        ConfigCommand command = new ConfigCommand(configService.fork(), configTable, console);
 
         command.run();
 
@@ -70,7 +116,7 @@ public class ConfigCommandsTest {
 
     @Test
     public void getShowsProperty() {
-        GetCommand command = new GetCommand(descriptionService, configService.fork(), tables, console);
+        GetCommand command = new GetCommand(configService.fork(), configTable, console);
         command.setProperty(PROPERTY);
 
         command.run();
@@ -80,8 +126,52 @@ public class ConfigCommandsTest {
     }
 
     @Test
+    public void setCommandOutputIsCensoredByTheConsole() {
+        Console censoring = new CensoringConsole(console, secretService);
+        SetCommand set = new SetCommand(descriptionService, configService, tables, censoring);
+        set.setTemp(true);
+        set.setProperty(TOKEN);
+        set.setValue(SECRET);
+
+        set.run();
+
+        assertEquals(SECRET, configService.getConfig().getValue(TOKEN, String.class));
+        assertEquals(List.of("Set " + TOKEN + " to " + SecretService.MASK + " temporarily"), console.lines());
+    }
+
+    @Test
+    public void configCommandsOutputIsCensoredByTheConsole() {
+        Console censoring = new CensoringConsole(console, secretService);
+        configService.set(TOKEN, SECRET, false);
+
+        GetCommand get = new GetCommand(configService, configTable, censoring);
+        get.setProperty(TOKEN);
+        get.run();
+        new ListCommand(configService, configTable, censoring).run();
+        new ConfigCommand(configService, configTable, censoring).run();
+
+        assertFalse(output().contains(SECRET), () -> "was: " + output());
+        assertTrue(output().contains(SecretService.MASK + " "), () -> "was: " + output());
+    }
+
+    @Test
+    public void editingASecretStartsWithAnEmptyEditor() {
+        configService.set(TOKEN, SECRET, false);
+        List<String> edited = new ArrayList<>();
+        Console censoring = new CensoringConsole(editingConsole(edited, "ghp_new_secret"), secretService);
+        SetCommand command = new SetCommand(descriptionService, configService, tables, censoring);
+        command.setTemp(true);
+        command.setProperty(TOKEN);
+
+        command.run();
+
+        assertEquals(List.of(""), edited);
+        assertEquals("ghp_new_secret", configService.getConfig().getValue(TOKEN, String.class));
+    }
+
+    @Test
     public void getWithoutPropertyThrows() {
-        GetCommand command = new GetCommand(descriptionService, configService.fork(), tables, console);
+        GetCommand command = new GetCommand(configService.fork(), configTable, console);
         assertThrows(IllegalArgumentException.class, command::run);
     }
 
@@ -132,28 +222,7 @@ public class ConfigCommandsTest {
     public void setWithoutValueUsesTheConsoleEditor() {
         ConfigService fork = configService.fork();
         List<String> edited = new ArrayList<>();
-        RecordingConsole editingConsole = new RecordingConsole() {
-            @Override
-            public Optional<ConsoleExtensions> extensions() {
-                return Optional.of(new ConsoleExtensions() {
-                    @Override
-                    public String edit(String initialString) {
-                        edited.add(initialString);
-                        return "false";
-                    }
-
-                    @Override
-                    public String read(String prompt, Completions completions) {
-                        throw new UnsupportedOperationException();
-                    }
-
-                    @Override
-                    public int getWidth() {
-                        return 80;
-                    }
-                });
-            }
-        };
+        RecordingConsole editingConsole = editingConsole(edited, "false");
 
         SetCommand command = new SetCommand(descriptionService, fork, tables, editingConsole);
 
@@ -273,7 +342,7 @@ public class ConfigCommandsTest {
 
     @Test
     public void listShowsHmcProperties() {
-        ListCommand command = new ListCommand(descriptionService, configService.fork(), tables, console);
+        ListCommand command = new ListCommand(configService.fork(), configTable, console);
 
         command.run();
 
@@ -281,13 +350,26 @@ public class ConfigCommandsTest {
     }
 
     @Test
+    public void optionalPropertiesAreListedWithoutValue() {
+        String token = "hmc.test.commands.token";
+        new ConfigCommand(configService.fork(), configTable, console).run();
+        new ListCommand(configService.fork(), configTable, console).run();
+
+        List<String> lines = output().lines().filter(line -> line.startsWith(token)).toList();
+        assertEquals(2, lines.size(), () -> "was: " + output());
+        for (String line : lines) {
+            assertTrue(line.matches(token + " +- +Optional.*"), () -> "was: " + line);
+        }
+    }
+
+    @Test
     public void listAllShowsMoreProperties() {
-        ListCommand hmcOnly = new ListCommand(descriptionService, configService.fork(), tables, console);
+        ListCommand hmcOnly = new ListCommand(configService.fork(), configTable, console);
         hmcOnly.run();
         int hmcOutputLength = output().length();
         console.lines().clear();
 
-        ListCommand all = new ListCommand(descriptionService, configService.fork(), tables, console);
+        ListCommand all = new ListCommand(configService.fork(), configTable, console);
         all.setAll(true);
         all.run();
 

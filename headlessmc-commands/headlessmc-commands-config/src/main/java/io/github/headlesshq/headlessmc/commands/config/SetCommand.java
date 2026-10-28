@@ -65,8 +65,7 @@ public class SetCommand implements Runnable {
                     "Please specify the value to set " + property + " to, or use another terminal."
                 ));
 
-            String before = configService.getConfig().getValue(property, String.class);
-            value = extensions.edit(before);
+            value = extensions.edit(configService.getConfig().getValue(property, String.class));
         }
 
         configService.set(property, value, !temp);
